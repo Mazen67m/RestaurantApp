@@ -1,13 +1,17 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using RestaurantApp.Application.Common;
 using RestaurantApp.Application.DTOs.Auth;
 using RestaurantApp.Application.Interfaces;
 using RestaurantApp.Domain.Entities;
+using RestaurantApp.Infrastructure.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace RestaurantApp.Infrastructure.Services;
 
@@ -18,19 +22,25 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
     private readonly ITokenBlacklistService _blacklistService;
+    private readonly ILogger<AuthService> _logger;
+    private readonly ApplicationDbContext _context;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IConfiguration configuration,
         IEmailService emailService,
-        ITokenBlacklistService blacklistService)
+        ITokenBlacklistService blacklistService,
+        ILogger<AuthService> logger,
+        ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _emailService = emailService;
         _blacklistService = blacklistService;
+        _logger = logger;
+        _context = context;
     }
 
     public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
@@ -73,20 +83,20 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginDto dto)
     {
-        Console.WriteLine($"[AuthService] Login attempt for: {dto.Email}");
+        _logger.LogInformation("[AuthService] Login attempt for: {Email}", dto.Email);
         
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null)
         {
-            Console.WriteLine("[AuthService] User not found");
+            _logger.LogWarning("[AuthService] User not found for email: {Email}", dto.Email);
             return ApiResponse<AuthResponseDto>.ErrorResponse("Invalid email or password");
         }
         
-        Console.WriteLine($"[AuthService] User found - IsActive: {user.IsActive}, EmailConfirmed: {user.EmailConfirmed}");
+        _logger.LogInformation("[AuthService] User found - IsActive: {IsActive}, EmailConfirmed: {EmailConfirmed}", user.IsActive, user.EmailConfirmed);
         
         if (!user.IsActive)
         {
-            Console.WriteLine("[AuthService] User is not active");
+            _logger.LogWarning("[AuthService] User is not active");
             return ApiResponse<AuthResponseDto>.ErrorResponse("Invalid email or password");
         }
 
@@ -98,7 +108,7 @@ public class AuthService : IAuthService
 
         // Use CheckPasswordAsync to avoid email confirmation requirement from SignInManager
         var passwordValid = await _userManager.CheckPasswordAsync(user, dto.Password);
-        Console.WriteLine($"[AuthService] Password valid: {passwordValid}");
+        _logger.LogInformation("[AuthService] Password validation result: {IsValid}", passwordValid);
         
         if (!passwordValid)
         {
@@ -114,8 +124,76 @@ public class AuthService : IAuthService
         await _userManager.UpdateAsync(user);
 
         var authResponse = await GenerateAuthResponse(user);
-        Console.WriteLine("[AuthService] Login successful");
+        _logger.LogInformation("[AuthService] Login successful");
         return ApiResponse<AuthResponseDto>.SuccessResponse(authResponse);
+    }
+
+    public async Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(string refreshToken, string? ipAddress = null)
+    {
+        var existingToken = await _context.RefreshTokens
+            .SingleOrDefaultAsync(t => t.Token == refreshToken);
+
+        if (existingToken == null)
+        {
+            return ApiResponse<AuthResponseDto>.ErrorResponse("Invalid refresh token");
+        }
+
+        if (existingToken.RevokedAt != null)
+        {
+            // Security: Attempted reuse of revoked token! Revoke all descendant tokens
+            // For now, just fail
+            return ApiResponse<AuthResponseDto>.ErrorResponse("Invalid refresh token");
+        }
+
+        if (existingToken.IsExpired)
+        {
+             return ApiResponse<AuthResponseDto>.ErrorResponse("Token expired");
+        }
+
+        var user = await _userManager.FindByIdAsync(existingToken.UserId.ToString());
+        if (user == null)
+        {
+            return ApiResponse<AuthResponseDto>.ErrorResponse("User not found");
+        }
+        
+        // Revoke current token (Rotate)
+        existingToken.RevokedAt = DateTime.UtcNow;
+        existingToken.RevokedByIp = ipAddress;
+        existingToken.RevocationReason = "Replaced by new token";
+        
+        // Generate new token
+        var newRefreshToken = GenerateRefreshToken();
+        existingToken.ReplacedByToken = newRefreshToken.Token;
+        newRefreshToken.UserId = user.Id;
+        newRefreshToken.CreatedByIp = ipAddress;
+        
+        _context.RefreshTokens.Update(existingToken);
+        _context.RefreshTokens.Add(newRefreshToken);
+        await _context.SaveChangesAsync();
+        
+        var authResponse = await GenerateAuthResponse(user, newRefreshToken);
+        return ApiResponse<AuthResponseDto>.SuccessResponse(authResponse);
+    }
+
+    public async Task RevokeRefreshTokenAsync(string refreshToken, string? ipAddress = null, string? reason = null)
+    {
+        var token = await _context.RefreshTokens
+            .SingleOrDefaultAsync(t => t.Token == refreshToken);
+
+        if (token != null && !token.IsActive)
+        {
+            return; // Already revoked or expired
+        }
+
+        if (token != null)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedByIp = ipAddress;
+            token.RevocationReason = reason ?? "Revoked manually";
+            
+            _context.RefreshTokens.Update(token);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task<ApiResponse> VerifyEmailAsync(VerifyEmailDto dto)
@@ -260,7 +338,20 @@ public class AuthService : IAuthService
         }
     }
 
-    private async Task<AuthResponseDto> GenerateAuthResponse(ApplicationUser user)
+    private static RefreshToken GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return new RefreshToken
+        {
+            Token = Convert.ToBase64String(randomNumber),
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private async Task<AuthResponseDto> GenerateAuthResponse(ApplicationUser user, RefreshToken? existingRefreshToken = null)
     {
         var roles = await _userManager.GetRolesAsync(user);
         var role = roles.FirstOrDefault() ?? "Customer";
@@ -278,7 +369,7 @@ public class AuthService : IAuthService
                      ?? _configuration["Jwt:Key"];
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.UtcNow.AddDays(7);
+        var expires = DateTime.UtcNow.AddMinutes(15);
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
@@ -290,6 +381,20 @@ public class AuthService : IAuthService
 
         var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
+        RefreshToken refreshToken;
+        
+        if (existingRefreshToken != null)
+        {
+            refreshToken = existingRefreshToken;
+        }
+        else
+        {
+            refreshToken = GenerateRefreshToken();
+            refreshToken.UserId = user.Id;
+            _context.RefreshTokens.Add(refreshToken);
+            await _context.SaveChangesAsync();
+        }
+
         return new AuthResponseDto(
             user.Id,
             user.Email!,
@@ -297,7 +402,9 @@ public class AuthService : IAuthService
             tokenString,
             expires,
             role,
-            user.PreferredLanguage
+            user.PreferredLanguage,
+            refreshToken.Token,
+            refreshToken.ExpiresAt
         );
     }
 }

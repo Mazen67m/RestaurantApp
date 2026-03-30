@@ -1,97 +1,59 @@
-import 'dart:convert';
 import 'dart:math' as math;
-import 'package:http/http.dart' as http;
 import '../../core/constants/constants.dart';
 import '../models/branch.dart';
+import 'api_service.dart';
 
 /// Service for branch-related API calls
 class BranchService {
-  String? authToken;
-
-  BranchService({this.authToken});
-
-  void setAuthToken(String token) {
-    authToken = token;
-  }
-
-  Map<String, String> get _headers {
-    final headers = {'Content-Type': 'application/json'};
-    if (authToken != null) {
-      headers['Authorization'] = 'Bearer $authToken';
-    }
-    return headers;
-  }
+  final ApiService _apiService = ApiService();
 
   /// Get all branches
   Future<List<Branch>> getBranches({double? latitude, double? longitude}) async {
-    try {
-      String url = '${ApiConstants.baseUrl}${ApiConstants.branches}';
-      
-      // Add location parameters if provided
-      if (latitude != null && longitude != null) {
-        url += '?latitude=$latitude&longitude=$longitude';
-      }
+    final response = await _apiService.get<List>(
+      ApiConstants.branches,
+      queryParams: {
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+      },
+      fromJson: (data) => data as List,
+    );
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: _headers,
-      ).timeout(ApiConstants.connectionTimeout);
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return (json['data'] as List)
-              .map((item) => Branch.fromJson(item))
-              .toList();
-        }
-      }
-      return [];
-    } catch (e) {
-      print('Error fetching branches: $e');
-      return [];
+    if (response.success && response.data != null) {
+      return response.data!
+          .map((item) => Branch.fromJson(item))
+          .toList();
     }
+    return [];
   }
 
   /// Get branch by ID
   Future<Branch?> getBranchById(int id) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.branches}/$id'),
-        headers: _headers,
-      ).timeout(ApiConstants.connectionTimeout);
+    final response = await _apiService.get<Map<String, dynamic>>(
+      '${ApiConstants.branches}/$id',
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return Branch.fromJson(json['data']);
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error fetching branch: $e');
-      return null;
+    if (response.success && response.data != null) {
+      return Branch.fromJson(response.data!);
     }
+    return null;
   }
 
   /// Get nearest branch based on user location
   Future<Branch?> getNearestBranch(double latitude, double longitude) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.nearestBranch}?latitude=$latitude&longitude=$longitude'),
-        headers: _headers,
-      ).timeout(ApiConstants.connectionTimeout);
+    final response = await _apiService.get<Map<String, dynamic>>(
+      ApiConstants.nearestBranch,
+      queryParams: {
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        if (json['success'] == true && json['data'] != null) {
-          return Branch.fromJson(json['data']);
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error fetching nearest branch: $e');
-      return null;
+    if (response.success && response.data != null) {
+      return Branch.fromJson(response.data!);
     }
+    return null;
   }
 
   /// Calculate distance between two coordinates (Haversine formula)
@@ -120,4 +82,7 @@ class BranchService {
   double _toRadians(double degrees) {
     return degrees * (math.pi / 180);
   }
+
+  // Deprecated: Auth token is now handled globally by ApiService interceptor
+  void setAuthToken(String token) {}
 }

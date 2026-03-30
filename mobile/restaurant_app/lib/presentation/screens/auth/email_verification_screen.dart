@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../data/providers/locale_provider.dart';
 import '../../../data/services/api_service.dart';
 import '../../../core/constants/constants.dart';
+import '../../../shared/widgets/primary_button.dart';
 import 'login_screen.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -90,7 +91,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.tr('email_verified_success')),
-            backgroundColor: AppTheme.successColor,
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.of(context).pushAndRemoveUntil(
@@ -125,7 +126,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.tr('verification_code_sent')),
-            backgroundColor: AppTheme.successColor,
+            backgroundColor: AppColors.success,
           ),
         );
         _startResendCooldown();
@@ -157,8 +158,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final isArabic = context.watch<LocaleProvider>().isArabic;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(context.tr('verify_email')),
+        title: Text(context.tr('verify_email'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -173,13 +178,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.email_outlined,
                   size: 50,
-                  color: AppTheme.primaryColor,
+                  color: AppColors.primary,
                 ),
               ),
               
@@ -200,9 +205,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               // Subtitle
               Text(
                 '${context.tr('verification_code_sent_to')}\n${widget.email}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -232,18 +237,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           counterText: '',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: AppTheme.primaryColor,
+                              color: AppColors.primary,
                               width: 2,
                             ),
                           ),
                           filled: true,
                           fillColor: _controllers[index].text.isNotEmpty
-                              ? AppTheme.primaryColor.withOpacity(0.1)
-                              : null,
+                              ? AppColors.primary.withOpacity(0.1)
+                              : AppColors.surface,
                         ),
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -264,7 +270,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   child: Text(
                     _error!,
                     style: const TextStyle(
-                      color: AppTheme.errorColor,
+                      color: AppColors.error,
                       fontSize: 14,
                     ),
                     textAlign: TextAlign.center,
@@ -274,28 +280,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 24),
               
               // Verify button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading || _code.length != 6 ? null : _verifyCode,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          context.tr('verify'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
+              PrimaryButton(
+                text: context.tr('verify'),
+                onPressed: _isLoading || _code.length != 6 ? null : _verifyCode,
+                isLoading: _isLoading,
               ),
               
               const SizedBox(height: 24),
@@ -306,13 +294,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 children: [
                   Text(
                     context.tr('didnt_receive_code'),
-                    style: TextStyle(color: AppTheme.textSecondary),
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(width: 4),
                   if (_resendCooldown > 0)
                     Text(
                       '(${_resendCooldown}s)',
-                      style: TextStyle(color: AppTheme.textSecondary),
+                      style: const TextStyle(color: AppColors.textSecondary),
                     )
                   else
                     TextButton(

@@ -58,7 +58,6 @@ class BranchProvider with ChangeNotifier {
       }
     } catch (e) {
       _error = e.toString();
-      print('Error loading branches: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -84,7 +83,6 @@ class BranchProvider with ChangeNotifier {
       }
     } catch (e) {
       _error = e.toString();
-      print('Error selecting nearest branch: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

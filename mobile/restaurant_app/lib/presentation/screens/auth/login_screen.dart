@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/locale_provider.dart';
+import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/secondary_button.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import '../home/home_screen.dart';
 import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? context.tr('error')),
-          backgroundColor: AppTheme.errorColor,
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -67,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isArabic = localeProvider.isArabic;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -91,11 +96,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 100,
                 margin: const EdgeInsets.symmetric(horizontal: 100),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      color: AppColors.primary.withOpacity(0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -122,9 +127,9 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               Text(
                 context.tr('login'),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  color: AppTheme.textSecondary,
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -136,14 +141,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    TextFormField(
+                    AppTextField(
                       controller: _emailController,
+                      label: context.tr('email'),
+                      hint: 'example@email.com',
+                      prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
-                      textDirection: TextDirection.ltr,
-                      decoration: InputDecoration(
-                        labelText: context.tr('email'),
-                        prefixIcon: const Icon(Icons.email_outlined),
-                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Email is required';
@@ -157,24 +160,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     
                     const SizedBox(height: 16),
                     
-                    TextFormField(
+                    AppTextField(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textDirection: TextDirection.ltr,
-                      decoration: InputDecoration(
-                        labelText: context.tr('password'),
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword 
-                                ? Icons.visibility_outlined 
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
-                          },
-                        ),
-                      ),
+                      label: context.tr('password'),
+                      hint: '••••••••',
+                      prefixIcon: Icons.lock_outlined,
+                      isPassword: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Password is required';
@@ -194,7 +185,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           : Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          // Navigate to forgot password
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordScreen(),
+                            ),
+                          );
                         },
                         child: Text(context.tr('forgot_password')),
                       ),
@@ -202,29 +197,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     
                     const SizedBox(height: 24),
                     
-                    // Login button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                context.tr('sign_in'),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                    PrimaryButton(
+                      text: context.tr('sign_in'),
+                      onPressed: _login,
+                      isLoading: _isLoading,
                     ),
                     
                     const SizedBox(height: 16),
@@ -235,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           context.tr('dont_have_account'),
-                          style: TextStyle(color: AppTheme.textSecondary),
+                          style: const TextStyle(color: AppColors.textSecondary),
                         ),
                         TextButton(
                           onPressed: () {
@@ -247,7 +223,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             context.tr('sign_up'),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -258,31 +237,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Divider
                     Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(color: AppColors.border)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             context.tr('or'),
-                            style: TextStyle(color: AppTheme.textSecondary),
+                            style: const TextStyle(color: AppColors.textHint),
                           ),
                         ),
-                        const Expanded(child: Divider()),
+                        const Expanded(child: Divider(color: AppColors.border)),
                       ],
                     ),
                     
                     const SizedBox(height: 24),
                     
                     // Continue as guest
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: _continueAsGuest,
-                        child: Text(
-                          context.tr('continue_as_guest'),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
+                    SecondaryButton(
+                      text: context.tr('continue_as_guest'),
+                      onPressed: _continueAsGuest,
                     ),
                   ],
                 ),

@@ -25,6 +25,9 @@ class Order {
   final double deliveryFee;
   final double discount;
   final double total;
+  final int? branchId;
+  final int? deliveryAddressId;
+  final String? paymentMethod;
   final String? deliveryAddressLine;
   final String? customerNotes;
   final DateTime? requestedDeliveryTime;
@@ -42,6 +45,9 @@ class Order {
     required this.deliveryFee,
     required this.discount,
     required this.total,
+    this.branchId,
+    this.deliveryAddressId,
+    this.paymentMethod,
     this.deliveryAddressLine,
     this.customerNotes,
     this.requestedDeliveryTime,
@@ -61,6 +67,9 @@ class Order {
       deliveryFee: (json['deliveryFee'] as num).toDouble(),
       discount: (json['discount'] as num).toDouble(),
       total: (json['total'] as num).toDouble(),
+      branchId: json['branchId'],
+      deliveryAddressId: json['deliveryAddressId'],
+      paymentMethod: json['paymentMethod'],
       deliveryAddressLine: json['deliveryAddressLine'],
       customerNotes: json['customerNotes'],
       requestedDeliveryTime: json['requestedDeliveryTime'] != null
@@ -127,6 +136,9 @@ class OrderItem {
     this.notes,
     this.addOns = const [],
   });
+
+  // Alias for notes
+  String? get specialInstructions => notes;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(

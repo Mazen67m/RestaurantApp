@@ -65,24 +65,15 @@ class _CategoryChipState extends State<CategoryChip>
           ),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? AppColors.primaryOrange
-                : AppColors.bgPrimary,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                ? AppColors.primary
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(100),
             border: Border.all(
               color: widget.isSelected
-                  ? AppColors.primaryOrange
-                  : AppColors.borderColor,
+                  ? AppColors.primary
+                  : AppColors.border,
               width: 1.5,
             ),
-            boxShadow: widget.isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.primaryOrange.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -90,22 +81,23 @@ class _CategoryChipState extends State<CategoryChip>
               if (widget.icon != null) ...[
                 Icon(
                   widget.icon,
-                  size: AppDimensions.iconSm,
+                  size: 18,
                   color: widget.isSelected
-                      ? AppColors.textWhite
+                      ? Colors.white
                       : AppColors.textSecondary,
                 ),
-                const SizedBox(width: AppDimensions.spaceXs),
+                const SizedBox(width: 8),
               ],
               Text(
                 widget.label,
-                style: AppTypography.bodyMedium.copyWith(
+                style: TextStyle(
                   color: widget.isSelected
-                      ? AppColors.textWhite
+                      ? Colors.white
                       : AppColors.textPrimary,
                   fontWeight: widget.isSelected
-                      ? AppTypography.fontSemiBold
-                      : AppTypography.fontMedium,
+                      ? FontWeight.bold
+                      : FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
             ],

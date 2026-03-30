@@ -48,7 +48,6 @@ class AddressProvider with ChangeNotifier {
       }
     } catch (e) {
       _error = e.toString();
-      print('Error loading addresses: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -77,7 +76,6 @@ class AddressProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
-      print('Error adding address: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -109,7 +107,6 @@ class AddressProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
-      print('Error updating address: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -139,7 +136,6 @@ class AddressProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
-      print('Error deleting address: $e');
       return false;
     } finally {
       _isLoading = false;
@@ -180,7 +176,6 @@ class AddressProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _error = e.toString();
-      print('Error setting default address: $e');
       return false;
     } finally {
       _isLoading = false;

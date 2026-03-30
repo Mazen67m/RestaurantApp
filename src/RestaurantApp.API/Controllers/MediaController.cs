@@ -16,7 +16,11 @@ public class MediaController : ControllerBase
         _environment = environment;
     }
 
+    /// <summary>
+    /// Uploads an image file for menu items or restaurant logos (Max 5MB)
+    /// </summary>
     [HttpPost("upload")]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5MB Limit
     public async Task<IActionResult> UploadImage(IFormFile file)
     {
         if (file == null || file.Length == 0)

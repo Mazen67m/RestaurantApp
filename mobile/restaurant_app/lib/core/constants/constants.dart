@@ -1,25 +1,32 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, defaultTargetPlatform;
+import 'package:flutter/foundation.dart';
 
 class ApiConstants {
   // Base URL - Automatically detects platform
+  // Base URL - Automatically detects platform and environment
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:5009/api';
-    try {
-      if (Platform.isWindows) return 'http://localhost:5009/api';
-      if (Platform.isAndroid) return 'http://10.0.2.2:5009/api'; // Android Emulator
-    } catch (e) {
-      print('Platform error: $e');
+    if (kReleaseMode) {
+      return 'https://api.althawaq-restaurant.com/api'; // production
     }
-    return 'http://localhost:5009/api'; // iOS, MacOS, etc.
+    if (kIsWeb) return 'http://localhost:5009/api';
+    
+    // For non-web platforms, we check platform
+    if (defaultTargetPlatform == TargetPlatform.android) {
+        return 'http://10.0.2.2:5009/api'; // Android Emulator
+    }
+    return 'http://localhost:5009/api';
   }
   
-  // SignalR Hub URL (for real-time features)
+  // SignalR Hub URL
   static String get signalRUrl {
+    if (kReleaseMode) {
+      return 'https://api.althawaq-restaurant.com'; // production
+    }
     if (kIsWeb) return 'http://localhost:5009';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:5009';
-    } catch (e) {}
+    
+    if (defaultTargetPlatform == TargetPlatform.android) {
+        return 'http://10.0.2.2:5009';
+    }
     return 'http://localhost:5009';
   }
   
@@ -31,6 +38,11 @@ class ApiConstants {
   static const String forgotPassword = '/auth/forgot-password';
   static const String resetPassword = '/auth/reset-password';
   static const String changePassword = '/auth/change-password';
+  static const String authRefresh = '/auth/refresh-token';
+  
+  // Device & Push Notifications
+  static const String registerDevice = '/devices/register';
+  static const String notifications = '/notifications';
   
   // Restaurant endpoints
   static const String restaurant = '/restaurant';
@@ -78,6 +90,7 @@ class ApiConstants {
 
 class StorageKeys {
   static const String accessToken = 'access_token';
+  static const String token = 'access_token'; // Alias
   static const String refreshToken = 'refresh_token';
   static const String userId = 'user_id';
   static const String userEmail = 'user_email';
@@ -86,6 +99,9 @@ class StorageKeys {
   static const String language = 'language';
   static const String cart = 'cart';
   static const String selectedBranch = 'selected_branch';
+  static const String hasSeenOnboarding = 'has_seen_onboarding';
+  static const String cacheCategories = 'cache_categories';
+  static const String cachePopularItems = 'cache_popular_items';
 }
 
 class AppConstants {
@@ -94,7 +110,7 @@ class AppConstants {
   static const List<String> supportedLanguages = ['ar', 'en'];
   
   // Google Maps
-  static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+  static const String googleMapsApiKey = 'AIzaSyXXXXXXXXXXXXX_PLACEHOLDER';
   
   // Pagination
   static const int defaultPageSize = 10;

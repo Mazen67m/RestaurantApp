@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/restaurant_model.dart';
 import '../models/menu_model.dart';
 import '../services/api_service.dart';
@@ -101,7 +103,6 @@ class RestaurantProvider extends ChangeNotifier {
     _selectedBranch = branch;
     notifyListeners();
   }
-
   Future<void> loadCategories() async {
     try {
       final response = await _apiService.get<List<dynamic>>(
@@ -111,15 +112,29 @@ class RestaurantProvider extends ChangeNotifier {
 
       if (response.success && response.data != null) {
         _categories = response.data!.map((c) => MenuCategory.fromJson(c)).toList();
+        _saveToCache(StorageKeys.cacheCategories, response.data!);
+      } else {
+        await _loadCategoriesFromCache();
       }
     } catch (e) {
-      // Silent fail
+      await _loadCategoriesFromCache();
     }
     notifyListeners();
   }
 
+  Future<void> _loadCategoriesFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(StorageKeys.cacheCategories);
+      if (cached != null) {
+        final List<dynamic> data = jsonDecode(cached);
+        _categories = data.map((c) => MenuCategory.fromJson(c)).toList();
+      }
+    } catch (_) {}
+  }
+
   Future<void> loadItemsByCategory(int categoryId) async {
-    if (_itemsByCategory.containsKey(categoryId)) {
+    if (_itemsByCategory.containsKey(categoryId) && _itemsByCategory[categoryId]!.isNotEmpty) {
       notifyListeners();
       return;
     }
@@ -133,11 +148,25 @@ class RestaurantProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         _itemsByCategory[categoryId] = 
             response.data!.map((i) => MenuItem.fromJson(i)).toList();
+        _saveToCache('cache_category_$categoryId', response.data!);
+      } else {
+        await _loadItemsFromCache(categoryId);
       }
     } catch (e) {
-      _itemsByCategory[categoryId] = [];
+      await _loadItemsFromCache(categoryId);
     }
     notifyListeners();
+  }
+
+  Future<void> _loadItemsFromCache(int categoryId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('cache_category_$categoryId');
+      if (cached != null) {
+        final List<dynamic> data = jsonDecode(cached);
+        _itemsByCategory[categoryId] = data.map((i) => MenuItem.fromJson(i)).toList();
+      }
+    } catch (_) {}
   }
 
   Future<MenuItem?> getItemDetails(int itemId) async {
@@ -155,7 +184,6 @@ class RestaurantProvider extends ChangeNotifier {
     }
     return null;
   }
-
   Future<void> loadPopularItems({int count = 10}) async {
     try {
       final response = await _apiService.get<List<dynamic>>(
@@ -166,11 +194,32 @@ class RestaurantProvider extends ChangeNotifier {
 
       if (response.success && response.data != null) {
         _popularItems = response.data!.map((i) => MenuItem.fromJson(i)).toList();
+        _saveToCache(StorageKeys.cachePopularItems, response.data!);
+      } else {
+        await _loadPopularItemsFromCache();
       }
     } catch (e) {
-      _popularItems = [];
+      await _loadPopularItemsFromCache();
     }
     notifyListeners();
+  }
+
+  Future<void> _loadPopularItemsFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(StorageKeys.cachePopularItems);
+      if (cached != null) {
+        final List<dynamic> data = jsonDecode(cached);
+        _popularItems = data.map((i) => MenuItem.fromJson(i)).toList();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveToCache(String key, dynamic data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, jsonEncode(data));
+    } catch (_) {}
   }
 
   Future<void> searchItems(String query) async {

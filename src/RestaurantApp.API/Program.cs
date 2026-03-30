@@ -14,6 +14,8 @@ using FluentValidation.AspNetCore;
 using RestaurantApp.API.Middleware;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Hangfire;
+using RestaurantApp.Application;
 
 
 // CRITICAL: Clear default claim type mappings to prevent JWT handler from transforming claims
@@ -110,8 +112,29 @@ else
     builder.Services.AddDistributedMemoryCache();
 }
 
+
 // Add Infrastructure services (DbContext, Identity, Services)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add Application services (MediatR, Handlers)
+builder.Services.AddApplication();
+
+// Add MediatR and scan assemblies
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssemblies(
+        typeof(RestaurantApp.Application.DependencyInjection).Assembly,
+        typeof(RestaurantApp.Infrastructure.DependencyInjection).Assembly
+    );
+});
+
+// Add Hangfire
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddHangfireServer();
 
 // JWT Authentication
 var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
@@ -394,6 +417,9 @@ app.UseMiddleware<RestaurantApp.API.Middleware.RequestResponseLoggingMiddleware>
 // Correlation ID for distributed tracing
 app.UseCorrelationId();
 
+// Security Headers
+app.UseSecurityHeaders();
+
 // Global exception handling - must be early in pipeline
 app.UseMiddleware<RestaurantApp.API.Middleware.ExceptionHandlingMiddleware>();
 
@@ -409,6 +435,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseTokenBlacklist();
 app.UseAuthorization();
+app.UseHangfireDashboard();
 
 app.MapControllers();
 

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/locale_provider.dart';
 import '../auth/login_screen.dart';
 import '../addresses/addresses_screen.dart';
+import 'edit_profile_screen.dart';
+import '../loyalty/loyalty_dashboard_screen.dart';
+import 'user_reviews_screen.dart';
+import '../legal/terms_of_service_screen.dart';
+import '../legal/privacy_policy_screen.dart';
+import '../help/help_support_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -17,9 +24,13 @@ class ProfileScreen extends StatelessWidget {
     final isArabic = localeProvider.isArabic;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(context.tr('profile')),
+        title: Text(context.tr('profile'), style: const TextStyle(fontWeight: FontWeight.bold)),
         automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
       ),
       body: authProvider.isAuthenticated
           ? _buildAuthenticatedContent(context, authProvider, localeProvider, isArabic)
@@ -35,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
           Icon(
             Icons.person_outline,
             size: 80,
-            color: Colors.grey[400],
+            color: AppColors.textHint,
           ),
           const SizedBox(height: 16),
           Text(
@@ -47,8 +58,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Login to access your profile',
-            style: TextStyle(color: AppTheme.textSecondary),
+            context.tr('login_to_access_profile'),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -82,7 +93,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 50,
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
                   backgroundImage: user?.profileImageUrl != null
                       ? NetworkImage(user!.profileImageUrl!)
                       : null,
@@ -92,7 +103,7 @@ class ProfileScreen extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
+                            color: AppColors.primary,
                           ),
                         )
                       : null,
@@ -108,8 +119,8 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   user?.email ?? '',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -124,7 +135,31 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.person_outline,
             title: context.tr('edit_profile'),
             onTap: () {
-              // TODO: Navigate to edit profile
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.card_giftcard,
+            title: context.tr('my_loyalty'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LoyaltyDashboardScreen()),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.star_outline,
+            title: context.tr('your_reviews'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UserReviewsScreen()),
+              );
             },
           ),
 
@@ -145,7 +180,7 @@ class ProfileScreen extends StatelessWidget {
             title: context.tr('language'),
             trailing: Text(
               isArabic ? 'العربية' : 'English',
-              style: TextStyle(color: AppTheme.textSecondary),
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             onTap: () => localeProvider.toggleLocale(),
           ),
@@ -155,7 +190,9 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.notifications_outlined,
             title: context.tr('notifications'),
             onTap: () {
-              // TODO: Navigate to notifications settings
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+              );
             },
           ),
 
@@ -166,16 +203,31 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.help_outline,
             title: context.tr('help_support'),
             onTap: () {
-              // TODO: Navigate to help
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+              );
             },
           ),
 
           _buildMenuItem(
             context,
-            icon: Icons.info_outline,
-            title: context.tr('about_us'),
+            icon: Icons.description_outlined,
+            title: context.tr('terms_of_service'),
             onTap: () {
-              // TODO: Navigate to about
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TermsOfServiceScreen()),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.privacy_tip_outlined,
+            title: context.tr('privacy_policy'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              );
             },
           ),
 
@@ -185,14 +237,14 @@ class ProfileScreen extends StatelessWidget {
             context,
             icon: Icons.logout,
             title: context.tr('logout'),
-            iconColor: AppTheme.errorColor,
-            titleColor: AppTheme.errorColor,
+            iconColor: AppColors.error,
+            titleColor: AppColors.error,
             onTap: () async {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: Text(context.tr('logout')),
-                  content: const Text('Are you sure you want to logout?'),
+                  content: Text(context.tr('logout_confirm')),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(false),
@@ -202,7 +254,7 @@ class ProfileScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(ctx).pop(true),
                       child: Text(
                         context.tr('logout'),
-                        style: const TextStyle(color: AppTheme.errorColor),
+                        style: const TextStyle(color: AppColors.error),
                       ),
                     ),
                   ],
@@ -220,9 +272,9 @@ class ProfileScreen extends StatelessWidget {
           // App version
           Text(
             'Version 1.0.0',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: AppColors.textSecondary,
             ),
           ),
 
@@ -242,12 +294,12 @@ class ProfileScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppTheme.textSecondary),
+      leading: Icon(icon, color: iconColor ?? AppColors.textSecondary),
       title: Text(
         title,
-        style: TextStyle(color: titleColor),
+        style: TextStyle(color: titleColor ?? Colors.white),
       ),
-      trailing: trailing ?? const Icon(Icons.chevron_right),
+      trailing: trailing ?? const Icon(Icons.chevron_right, color: AppColors.textSecondary),
       onTap: onTap,
     );
   }

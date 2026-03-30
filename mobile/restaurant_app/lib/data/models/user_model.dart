@@ -17,6 +17,9 @@ class User {
     required this.emailConfirmed,
   });
 
+  // Alias for phone
+  String? get phoneNumber => phone;
+
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],

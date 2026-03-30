@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../../core/constants/constants.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -18,6 +19,10 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   String? get error => _error;
 
+  Future<String?> getToken() async {
+    return await _storage.read(key: StorageKeys.token);
+  }
+
   AuthProvider() {
     _checkAuthStatus();
   }
@@ -30,6 +35,8 @@ class AuthProvider extends ChangeNotifier {
       final hasToken = await _apiService.hasToken();
       if (hasToken) {
         await getProfile();
+        // Register device for notifications
+        NotificationService().registerDeviceWithBackend();
       }
     } catch (e) {
       _isAuthenticated = false;
@@ -56,6 +63,7 @@ class AuthProvider extends ChangeNotifier {
         await _saveAuthData(authResponse);
         await getProfile();
         _isAuthenticated = true;
+        NotificationService().registerDeviceWithBackend();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -102,6 +110,7 @@ class AuthProvider extends ChangeNotifier {
         await _saveAuthData(authResponse);
         await getProfile();
         _isAuthenticated = true;
+        NotificationService().registerDeviceWithBackend();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -144,7 +153,6 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       final response = await _apiService.put<Map<String, dynamic>>(
         ApiConstants.profile,
@@ -153,7 +161,7 @@ class AuthProvider extends ChangeNotifier {
           'phone': phone,
           'preferredLanguage': preferredLanguage,
         },
-        fromJson: (data) => data,
+        fromJson: (data) => data as Map<String, dynamic>,
       );
 
       if (response.success && response.data != null) {
@@ -167,6 +175,92 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
+    } catch (e) {
+      _error = 'Connection error';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post(
+        ApiConstants.forgotPassword,
+        body: {'email': email},
+      );
+
+      _isLoading = false;
+      if (!response.success) {
+        _error = response.message ?? 'Error sending reset code';
+      }
+      notifyListeners();
+      return response.success;
+    } catch (e) {
+      _error = 'Connection error';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post(
+        ApiConstants.resetPassword,
+        body: {
+          'email': email,
+          'token': code,
+          'newPassword': newPassword,
+        },
+      );
+
+      _isLoading = false;
+      if (!response.success) {
+        _error = response.message ?? 'Password reset failed';
+      }
+      notifyListeners();
+      return response.success;
+    } catch (e) {
+      _error = 'Connection error';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post(
+        ApiConstants.changePassword,
+        body: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+
+      _isLoading = false;
+      if (!response.success) {
+        _error = response.message ?? 'Password change failed';
+      }
+      notifyListeners();
+      return response.success;
     } catch (e) {
       _error = 'Connection error';
       _isLoading = false;

@@ -6,6 +6,9 @@ using RestaurantApp.Application.Interfaces;
 
 namespace RestaurantApp.API.Controllers;
 
+/// <summary>
+/// Authentication and User Profile management
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("AuthPolicy")]
@@ -18,6 +21,9 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    /// <summary>
+    /// Registers a new customer account
+    /// </summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
@@ -29,10 +35,28 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Authenticates a user and returns JWT + Refresh Token
+    /// </summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var result = await _authService.LoginAsync(dto);
+        if (!result.Success)
+        {
+            return Unauthorized(result);
+        }
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Refreshes an expired access token using a refresh token
+    /// </summary>
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var result = await _authService.RefreshTokenAsync(request.RefreshToken, ipAddress);
         if (!result.Success)
         {
             return Unauthorized(result);
@@ -153,3 +177,5 @@ public class AuthController : ControllerBase
         return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
     }
 }
+
+public record RefreshTokenRequest(string RefreshToken);

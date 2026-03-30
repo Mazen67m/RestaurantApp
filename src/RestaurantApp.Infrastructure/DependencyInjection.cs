@@ -6,6 +6,9 @@ using RestaurantApp.Application.Interfaces;
 using RestaurantApp.Domain.Entities;
 using RestaurantApp.Infrastructure.Data;
 using RestaurantApp.Infrastructure.Services;
+using RestaurantApp.Infrastructure.Services.Orders;
+
+using RestaurantApp.Infrastructure.Repositories;
 
 namespace RestaurantApp.Infrastructure;
 
@@ -17,16 +20,25 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                sqlServerOptions => {
+                    sqlServerOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    sqlServerOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                    sqlServerOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                    sqlServerOptions.CommandTimeout(30);
+                }));
 
         // Identity
         services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
         {
+            // PRODUCTION SECURITY: Strengthened password policy (12+ chars)
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequiredLength = 6;
+            options.Password.RequireNonAlphanumeric = true; // Required for production
+            options.Password.RequiredLength = 12;
             
             options.User.RequireUniqueEmail = true;
             
@@ -44,6 +56,9 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IRestaurantService, RestaurantService>();
         services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<IOrderCreationService, OrderCreationService>();
+        services.AddScoped<IOrderQueryService, OrderQueryService>();
+        services.AddScoped<IOrderLifecycleService, OrderLifecycleService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IAddressService, AddressService>();
         services.AddScoped<IEmailService, EmailService>();
@@ -59,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IOfferService, OfferService>();
+        services.AddScoped<IAuditService, AuditService>();
         
         // Security Services
         services.AddScoped<IResourceAuthorizationService, ResourceAuthorizationService>();
@@ -66,6 +82,10 @@ public static class DependencyInjection
         // Performance Services
         services.AddScoped<ICacheService, CacheService>();
         
+        // Repositories
+        services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<IOrderRepository, OrderRepository>();
+
         // Security: Token Blacklist
         services.AddScoped<ITokenBlacklistService, TokenBlacklistService>();
 

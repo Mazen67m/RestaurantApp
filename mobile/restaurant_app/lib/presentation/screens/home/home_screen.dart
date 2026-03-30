@@ -8,7 +8,9 @@ import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/restaurant_provider.dart';
 import '../../../data/providers/cart_provider.dart';
 import '../../../data/providers/locale_provider.dart';
+import '../../../data/providers/notification_provider.dart';
 import '../../../data/models/menu_model.dart';
+import '../notifications/notifications_screen.dart';
 import '../../widgets/common/custom_bottom_nav.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/category/category_chip.dart';
@@ -90,7 +92,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: AppColors.primaryOrange,
+      color: AppColors.primary,
+      backgroundColor: AppColors.surface,
       child: CustomScrollView(
         slivers: [
           // Header Section
@@ -141,13 +144,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildHeader(AuthProvider authProvider, bool isArabic) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppDimensions.screenPaddingHorizontal,
-        AppDimensions.paddingXl + 32,
-        AppDimensions.screenPaddingHorizontal,
-        AppDimensions.paddingMd,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        20,
+        60,
+        20,
+        16,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -161,27 +161,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   children: [
                     const Icon(
                       Icons.location_on,
-                      color: AppColors.primaryOrange,
-                      size: AppDimensions.iconSm,
+                      color: AppColors.primary,
+                      size: 16,
                     ),
-                    const SizedBox(width: AppDimensions.spaceXs),
+                    const SizedBox(width: 4),
                     Text(
-                      'Deliver to',
-                      style: AppTypography.caption.copyWith(
+                      context.tr('deliver_to'),
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(width: AppDimensions.spaceXs),
+                    const SizedBox(width: 4),
                     const Icon(
                       Icons.keyboard_arrow_down,
                       color: AppColors.textSecondary,
-                      size: AppDimensions.iconSm,
+                      size: 16,
                     ),
                   ],
                 ),
                 const SizedBox(height: AppDimensions.spaceXs),
                 Text(
-                  authProvider.user?.fullName ?? 'Guest User',
+                  authProvider.user?.fullName ?? context.tr('guest_user'),
                   style: AppTypography.h4.copyWith(
                     color: AppColors.textPrimary,
                   ),
@@ -193,13 +194,51 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
 
           // Notification Icon
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
-              return NotificationIconButton(
-                notificationCount: 0,
-                onPressed: () {
-                  // TODO: Navigate to notifications
-                },
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, _) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                        );
+                      },
+                    ),
+                    if (notificationProvider.unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            notificationProvider.unreadCount > 9 ? '9+' : notificationProvider.unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               );
             },
           ),
@@ -211,39 +250,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.screenPaddingHorizontal,
-        vertical: AppDimensions.paddingSm,
+        horizontal: 20,
+        vertical: 8,
       ),
       child: GestureDetector(
-        onTap: () {
-          // TODO: Navigate to search screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Search screen coming soon')),
-          );
-        },
+        onTap: () {},
         child: Container(
-          height: 50,
+          height: 56,
           padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.paddingMd,
+            horizontal: 16,
           ),
           decoration: BoxDecoration(
-            color: AppColors.bgSecondary,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            border: Border.all(color: AppColors.borderColor),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.search,
-                color: AppColors.textSecondary,
-                size: AppDimensions.iconMd,
+                color: AppColors.textHint,
+                size: 24,
               ),
-              const SizedBox(width: AppDimensions.spaceMd),
+              const SizedBox(width: 12),
               Text(
-                'Search for food...',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textLight,
+                context.tr('search_hint'),
+                style: const TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 16,
                 ),
+              ),
+              const Spacer(),
+              const Icon(
+                Icons.tune,
+                color: AppColors.primary,
+                size: 20,
               ),
             ],
           ),
@@ -260,11 +301,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       height: 160,
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryOrange.withOpacity(0.3),
+            color: AppColors.primary.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -274,18 +315,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: [
           Positioned.fill(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryOrange.withOpacity(0.8),
-                      AppColors.primaryOrangeLight.withOpacity(0.6),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                   Image.asset(
+                    'assets/images/promo_banner.png',
+                    fit: BoxFit.cover,
+                    width: double.infinity,
                   ),
-                ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.7),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -297,12 +347,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.paddingSm,
-                    vertical: AppDimensions.paddingXs,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accentYellow,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '30% OFF',
@@ -312,16 +362,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-                const SizedBox(height: AppDimensions.spaceSm),
+                const Spacer(),
                 Text(
-                  'Special Deal',
+                  context.tr('special_deal'),
                   style: AppTypography.h2.copyWith(
                     color: AppColors.textWhite,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.spaceXs),
                 Text(
-                  'On your first order',
+                  context.tr('on_first_order'),
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textWhite.withOpacity(0.9),
                   ),
@@ -340,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     final categories = [
-      CategoryChipData(label: 'All', icon: Icons.restaurant),
+      CategoryChipData(label: context.tr('all'), icon: Icons.restaurant),
       ...provider.categories.map((cat) => CategoryChipData(
             label: cat.getName(isArabic),
             value: cat.id.toString(),
@@ -358,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             AppDimensions.paddingSm,
           ),
           child: Text(
-            'Categories',
+            context.tr('categories'),
             style: AppTypography.h3,
           ),
         ),
@@ -383,9 +433,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       child: Row(
         children: [
-          _buildTab('Recommended', 0),
+          _buildTab(context.tr('recommended'), 0),
           const SizedBox(width: AppDimensions.spaceMd),
-          _buildTab('Popular', 1),
+          _buildTab(context.tr('popular'), 1),
         ],
       ),
     );
@@ -399,19 +449,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: [
           Text(
             label,
-            style: AppTypography.h4.copyWith(
-              color: isSelected ? AppColors.primaryOrange : AppColors.textSecondary,
-              fontWeight: isSelected ? AppTypography.fontBold : AppTypography.fontMedium,
+            style: TextStyle(
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              fontSize: 16,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             ),
           ),
-          const SizedBox(height: AppDimensions.spaceXs),
+          const SizedBox(height: 4),
           if (isSelected)
             Container(
-              width: 40,
+              width: 32,
               height: 3,
               decoration: BoxDecoration(
-                color: AppColors.primaryOrange,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
         ],
@@ -436,11 +487,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     if (items.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: EmptyState(
           icon: Icons.restaurant_menu,
-          title: 'No items found',
-          message: 'Check back later for delicious food!',
+          title: context.tr('no_items_found'),
+          message: context.tr('check_back_later'),
         ),
       );
     }
@@ -492,11 +543,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${item.getName(false)} added to cart'),
-        backgroundColor: AppColors.accentGreen,
+        backgroundColor: AppColors.success,
         duration: const Duration(seconds: 2),
         action: SnackBarAction(
           label: 'VIEW CART',
-          textColor: AppColors.textWhite,
+          textColor: Colors.white,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const CartScreen()),

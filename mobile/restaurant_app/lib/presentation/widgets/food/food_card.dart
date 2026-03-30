@@ -112,8 +112,10 @@ class FoodCard extends StatelessWidget {
                       children: [
                         Text(
                           '\$${price.toStringAsFixed(2)}',
-                          style: AppTypography.price.copyWith(
-                            color: AppColors.primaryOrange,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (onAddToCart != null)
@@ -207,8 +209,10 @@ class FoodCard extends StatelessWidget {
                     children: [
                       Text(
                         '\$${price.toStringAsFixed(2)}',
-                        style: AppTypography.price.copyWith(
-                          color: AppColors.primaryOrange,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       if (onAddToCart != null)
@@ -279,8 +283,10 @@ class FoodCard extends StatelessWidget {
                     children: [
                       Text(
                         '\$${price.toStringAsFixed(2)}',
-                        style: AppTypography.priceSmall.copyWith(
-                          color: AppColors.primaryOrange,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       if (onAddToCart != null)
@@ -305,19 +311,19 @@ class FoodCard extends StatelessWidget {
         height: height,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(
-          color: AppColors.bgSecondary,
+          color: AppColors.inputBackground,
           child: const Center(
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ),
         ),
         errorWidget: (context, url, error) => Container(
-          color: AppColors.bgSecondary,
+          color: AppColors.inputBackground,
           child: const Icon(
             Icons.restaurant,
-            color: AppColors.textLight,
+            color: AppColors.textHint,
             size: 32,
           ),
         ),
@@ -330,21 +336,15 @@ class FoodCard extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+        color: AppColors.surface,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppColors.border),
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
         icon: Icon(
           isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: isFavorite ? AppColors.accentRed : AppColors.textSecondary,
+          color: isFavorite ? AppColors.primary : AppColors.textSecondary,
           size: size * 0.5,
         ),
         onPressed: onFavoriteToggle,
@@ -357,7 +357,7 @@ class FoodCard extends StatelessWidget {
       width: size,
       height: size,
       decoration: const BoxDecoration(
-        color: AppColors.primaryOrange,
+        color: AppColors.primary,
         shape: BoxShape.circle,
       ),
       child: IconButton(

@@ -27,14 +27,14 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetFavorites()
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
         var favorites = await _context.Favorites
-            .Where(f => f.CustomerId == customerId)
+            .Where(f => f.UserId == userId)
             .Include(f => f.MenuItem)
             .OrderByDescending(f => f.CreatedAt)
             .Select(f => new FavoriteDto(
@@ -57,10 +57,10 @@ public class FavoritesController : ControllerBase
     /// Get favorites for a specific user (for testing/demo)
     /// </summary>
     [HttpGet("user/{userId}")]
-    public async Task<IActionResult> GetUserFavorites(string userId)
+    public async Task<IActionResult> GetUserFavorites(int userId)
     {
         var favorites = await _context.Favorites
-            .Where(f => f.CustomerId == userId)
+            .Where(f => f.UserId == userId)
             .Include(f => f.MenuItem)
             .OrderByDescending(f => f.CreatedAt)
             .Select(f => new FavoriteDto(
@@ -86,14 +86,14 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> CheckFavorite(int menuItemId)
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
         var isFavorite = await _context.Favorites
-            .AnyAsync(f => f.CustomerId == customerId && f.MenuItemId == menuItemId);
+            .AnyAsync(f => f.UserId == userId && f.MenuItemId == menuItemId);
 
         return Ok(ApiResponse<bool>.SuccessResponse(isFavorite));
     }
@@ -105,15 +105,15 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> AddFavorite(int menuItemId)
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
         // Check if already exists
         var exists = await _context.Favorites
-            .AnyAsync(f => f.CustomerId == customerId && f.MenuItemId == menuItemId);
+            .AnyAsync(f => f.UserId == userId && f.MenuItemId == menuItemId);
 
         if (exists)
         {
@@ -129,7 +129,7 @@ public class FavoritesController : ControllerBase
 
         var favorite = new Favorite
         {
-            CustomerId = customerId,
+            UserId = userId,
             MenuItemId = menuItemId
         };
 
@@ -146,14 +146,14 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> RemoveFavorite(int menuItemId)
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
         var favorite = await _context.Favorites
-            .FirstOrDefaultAsync(f => f.CustomerId == customerId && f.MenuItemId == menuItemId);
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.MenuItemId == menuItemId);
 
         if (favorite == null)
         {
@@ -173,14 +173,14 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> ToggleFavorite(int menuItemId)
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
         var favorite = await _context.Favorites
-            .FirstOrDefaultAsync(f => f.CustomerId == customerId && f.MenuItemId == menuItemId);
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.MenuItemId == menuItemId);
 
         if (favorite != null)
         {
@@ -199,7 +199,7 @@ public class FavoritesController : ControllerBase
 
             var newFavorite = new Favorite
             {
-                CustomerId = customerId,
+                UserId = userId,
                 MenuItemId = menuItemId
             };
 
@@ -216,13 +216,13 @@ public class FavoritesController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetFavoriteCount()
     {
-        var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(customerId))
+        var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(rawUserId) || !int.TryParse(rawUserId, out int userId))
         {
             return Unauthorized();
         }
 
-        var count = await _context.Favorites.CountAsync(f => f.CustomerId == customerId);
+        var count = await _context.Favorites.CountAsync(f => f.UserId == userId);
         return Ok(ApiResponse<int>.SuccessResponse(count));
     }
 }

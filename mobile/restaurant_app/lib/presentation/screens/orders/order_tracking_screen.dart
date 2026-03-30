@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/order_tracking_provider.dart';
+import '../../../data/providers/order_tracking_provider.dart';
 import '../../../data/services/signalr_service.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_localizations.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final int orderId;
@@ -28,39 +30,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   }
 
   @override
-  void dispose() {
-    // Don't stop tracking on dispose - let the user continue receiving updates
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Track Order',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(context.tr('track_order')),
             Text(
               '#${widget.orderNumber}',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
             ),
           ],
         ),
@@ -74,15 +52,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               children: [
                 // Connection Status
                 _buildConnectionStatus(provider),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 
                 // Order Status Card
                 _buildStatusCard(provider),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 
                 // Status Timeline
                 _buildStatusTimeline(provider),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 
                 // Estimated Time
                 if (provider.latestStatusUpdate?.estimatedTime != null)
@@ -101,7 +79,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isConnected ? Colors.green[50] : Colors.orange[50],
+        color: isConnected ? AppTheme.successColor.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -112,16 +90,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isConnected ? Colors.green : Colors.orange,
+              color: isConnected ? AppTheme.successColor : Colors.orange,
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            isConnected ? 'Live tracking' : 'Connecting...',
+            isConnected ? context.tr('live_tracking') : context.tr('connecting'),
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isConnected ? Colors.green[700] : Colors.orange[700],
+              fontWeight: FontWeight.bold,
+              color: isConnected ? AppTheme.successColor : Colors.orange,
             ),
           ),
         ],
@@ -131,25 +109,23 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Widget _buildStatusCard(OrderTrackingProvider provider) {
     final update = provider.latestStatusUpdate;
-    final status = update?.statusText ?? 'Waiting for update...';
+    final statusText = update?.statusText ?? context.tr('waiting_for_update');
     
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor,
-            Theme.of(context).primaryColor.withOpacity(0.8),
-          ],
+        gradient: const LinearGradient(
+          colors: [AppTheme.primaryColor, Color(0xFFE64A19)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: AppTheme.primaryColor.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -157,12 +133,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         children: [
           Icon(
             _getStatusIcon(update?.status ?? ''),
-            size: 60,
+            size: 64,
             color: Colors.white,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
-            status,
+            statusText,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -171,9 +147,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             textAlign: TextAlign.center,
           ),
           if (update != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
-              'Updated ${_formatTime(update.updatedAt)}',
+              '${context.tr('updated')} ${_formatTime(update.updatedAt)}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.8),
@@ -189,55 +165,47 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final currentStatus = provider.latestStatusUpdate?.status ?? 'Pending';
     
     final statuses = [
-      {'key': 'Pending', 'label': 'Order Received', 'icon': Icons.receipt_long},
-      {'key': 'Confirmed', 'label': 'Order Confirmed', 'icon': Icons.check_circle},
-      {'key': 'Preparing', 'label': 'Preparing', 'icon': Icons.restaurant},
-      {'key': 'Ready', 'label': 'Ready', 'icon': Icons.done_all},
-      {'key': 'OutForDelivery', 'label': 'On the Way', 'icon': Icons.delivery_dining},
-      {'key': 'Delivered', 'label': 'Delivered', 'icon': Icons.home},
+      {'key': 'Pending', 'label': 'order_received', 'icon': Icons.receipt_long},
+      {'key': 'Confirmed', 'label': 'order_confirmed', 'icon': Icons.check_circle_outline},
+      {'key': 'Preparing', 'label': 'preparing', 'icon': Icons.restaurant},
+      {'key': 'Ready', 'label': 'ready', 'icon': Icons.shopping_bag_outlined},
+      {'key': 'OutForDelivery', 'label': 'out_for_delivery', 'icon': Icons.delivery_dining},
+      {'key': 'Delivered', 'label': 'delivered', 'icon': Icons.home_outlined},
     ];
     
     final currentIndex = statuses.indexWhere((s) => s['key'] == currentStatus);
     
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Order Progress',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('order_progress'),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          ...statuses.asMap().entries.map((entry) {
-            final index = entry.key;
-            final status = entry.value;
-            final isActive = index <= currentIndex;
-            final isCurrent = index == currentIndex;
-            
-            return _buildTimelineItem(
-              label: status['label'] as String,
-              icon: status['icon'] as IconData,
-              isActive: isActive,
-              isCurrent: isCurrent,
-              isLast: index == statuses.length - 1,
-            );
-          }),
-        ],
+            const SizedBox(height: 24),
+            ...statuses.asMap().entries.map((entry) {
+              final index = entry.key;
+              final status = entry.value;
+              final isActive = index <= currentIndex;
+              final isCurrent = index == currentIndex;
+              
+              return _buildTimelineItem(
+                label: context.tr(status['label'] as String),
+                icon: status['icon'] as IconData,
+                isActive: isActive,
+                isCurrent: isCurrent,
+                isLast: index == statuses.length - 1,
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -249,88 +217,85 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     required bool isCurrent,
     required bool isLast,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey[200],
-                border: isCurrent
-                    ? Border.all(
-                        color: Theme.of(context).primaryColor,
-                        width: 3,
-                      )
-                    : null,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive ? AppTheme.primaryColor : Colors.grey.shade100,
+                  border: isCurrent ? Border.all(color: AppTheme.primaryColor, width: 2) : null,
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: isActive ? Colors.white : Colors.grey.shade400,
+                ),
               ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: isActive ? Colors.white : Colors.grey[400],
-              ),
-            ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 30,
-                color: isActive
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey[200],
-              ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? Colors.black87 : Colors.grey[400],
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isActive ? AppTheme.primaryColor : Colors.grey.shade100,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                  color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildEstimatedTime(String time) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.primaryColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          Icon(Icons.access_time, color: Colors.blue[700]),
-          const SizedBox(width: 12),
+          const Icon(Icons.access_time_rounded, color: AppTheme.primaryColor),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Estimated Delivery',
-                  style: TextStyle(
+                Text(
+                  context.tr('estimated_arrival'),
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   time,
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
+                    color: AppTheme.primaryColor,
                   ),
                 ),
               ],
@@ -343,22 +308,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'Pending':
-        return Icons.receipt_long;
-      case 'Confirmed':
-        return Icons.check_circle;
-      case 'Preparing':
-        return Icons.restaurant;
-      case 'Ready':
-        return Icons.done_all;
-      case 'OutForDelivery':
-        return Icons.delivery_dining;
-      case 'Delivered':
-        return Icons.home;
-      case 'Cancelled':
-        return Icons.cancel;
-      default:
-        return Icons.hourglass_empty;
+      case 'Pending': return Icons.receipt_long;
+      case 'Confirmed': return Icons.check_circle_outline;
+      case 'Preparing': return Icons.restaurant;
+      case 'Ready': return Icons.shopping_bag_outlined;
+      case 'OutForDelivery': return Icons.delivery_dining;
+      case 'Delivered': return Icons.home_outlined;
+      case 'Cancelled': return Icons.cancel_outlined;
+      default: return Icons.hourglass_top_rounded;
     }
   }
 
@@ -366,9 +323,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final now = DateTime.now();
     final diff = now.difference(time);
     
-    if (diff.inSeconds < 60) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inSeconds < 60) return context.tr('just_now');
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ${context.tr('ago')}';
+    if (diff.inHours < 24) return '${diff.inHours}h ${context.tr('ago')}';
+    return '${diff.inDays}d ${context.tr('ago')}';
   }
 }

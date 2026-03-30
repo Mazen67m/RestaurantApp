@@ -9,14 +9,20 @@ namespace RestaurantApp.Infrastructure.Services;
 public class RestaurantService : IRestaurantService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICacheService _cacheService;
 
-    public RestaurantService(ApplicationDbContext context)
+    public RestaurantService(ApplicationDbContext context, ICacheService cacheService)
     {
         _context = context;
+        _cacheService = cacheService;
     }
 
     public async Task<ApiResponse<RestaurantDto>> GetRestaurantAsync()
     {
+        var cacheKey = "restaurant_info";
+        var cached = await _cacheService.GetAsync<RestaurantDto>(cacheKey);
+        if (cached != null) return ApiResponse<RestaurantDto>.SuccessResponse(cached);
+
         var restaurant = await _context.Restaurants
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.IsActive);
@@ -41,6 +47,7 @@ public class RestaurantService : IRestaurantService
             restaurant.IsActive
         );
 
+        await _cacheService.SetAsync(cacheKey, dto, TimeSpan.FromHours(24));
         return ApiResponse<RestaurantDto>.SuccessResponse(dto);
     }
 
@@ -86,17 +93,25 @@ public class RestaurantService : IRestaurantService
 
     public async Task<ApiResponse<List<BranchDto>>> GetBranchesAsync(decimal? latitude = null, decimal? longitude = null, bool includeInactive = false)
     {
-        var query = _context.Branches.AsQueryable();
-        
-        if (!includeInactive)
-        {
-            query = query.Where(b => b.IsActive);
-        }
+        var cacheKey = $"branches:{includeInactive}";
+        var branches = await _cacheService.GetAsync<List<Domain.Entities.Branch>>(cacheKey);
 
-        var branches = await query
-            .AsNoTracking()
-            .OrderBy(b => b.NameEn)
-            .ToListAsync();
+        if (branches == null)
+        {
+            var query = _context.Branches.AsQueryable();
+            
+            if (!includeInactive)
+            {
+                query = query.Where(b => b.IsActive);
+            }
+
+            branches = await query
+                .AsNoTracking()
+                .OrderBy(b => b.NameEn)
+                .ToListAsync();
+
+            await _cacheService.SetAsync(cacheKey, branches, TimeSpan.FromHours(1));
+        }
 
         var dtos = branches.Select(b => new BranchDto(
             b.Id,

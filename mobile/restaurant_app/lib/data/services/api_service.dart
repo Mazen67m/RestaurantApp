@@ -1,24 +1,85 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/constants/constants.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
-  ApiService._internal();
-
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   
-  Future<String?> get _token async => await _storage.read(key: StorageKeys.accessToken);
+  late final Dio _dio;
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  Future<Map<String, String>> get _headers async {
-    final token = await _token;
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
+  ApiService._internal() {
+    _dio = Dio(BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: ApiConstants.connectionTimeout,
+      receiveTimeout: ApiConstants.receiveTimeout,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storage.read(key: StorageKeys.accessToken);
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          final refreshToken = await _storage.read(key: StorageKeys.refreshToken);
+          
+          if (refreshToken != null) {
+            try {
+              // Try to refresh the token
+              final refreshResponse = await Dio(BaseOptions(baseUrl: ApiConstants.baseUrl)).post(
+                ApiConstants.authRefresh,
+                data: {'refreshToken': refreshToken},
+              );
+
+              if (refreshResponse.statusCode == 200) {
+                final newData = refreshResponse.data;
+                final newAccessToken = newData['accessToken'];
+                final newRefreshToken = newData['refreshToken'];
+
+                await _storage.write(key: StorageKeys.accessToken, value: newAccessToken);
+                await _storage.write(key: StorageKeys.refreshToken, value: newRefreshToken);
+
+                // Retry the original request
+                final options = e.requestOptions;
+                options.headers['Authorization'] = 'Bearer $newAccessToken';
+                
+                final retryResponse = await _dio.fetch(options);
+                return handler.resolve(retryResponse);
+              }
+            } catch (refreshError) {
+              if (kDebugMode) print('Token refresh failed: $refreshError');
+            }
+          }
+          
+          // If refresh failed or no token, clear everything and fail
+          await _storage.delete(key: StorageKeys.accessToken);
+          await _storage.delete(key: StorageKeys.refreshToken);
+        }
+
+        return handler.next(e);
+      },
+    ));
+
+    // Add logging interceptor only in debug mode
+    if (kDebugMode) {
+      _dio.interceptors.add(LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+      ));
+    }
   }
 
   Future<ApiResponse<T>> get<T>(
@@ -27,13 +88,13 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint')
-          .replace(queryParameters: queryParams?.map((k, v) => MapEntry(k, v.toString())));
-      
-      final response = await http.get(uri, headers: await _headers)
-          .timeout(ApiConstants.connectionTimeout);
-      
+      final response = await _dio.get(
+        endpoint,
+        queryParameters: queryParams,
+      );
       return _handleResponse<T>(response, fromJson);
+    } on DioException catch (e) {
+      return _handleDioError<T>(e);
     } catch (e) {
       return ApiResponse.error(e.toString());
     }
@@ -41,19 +102,17 @@ class ApiService {
 
   Future<ApiResponse<T>> post<T>(
     String endpoint, {
-    Map<String, dynamic>? body,
+    dynamic body,
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-      
-      final response = await http.post(
-        uri,
-        headers: await _headers,
-        body: body != null ? jsonEncode(body) : null,
-      ).timeout(ApiConstants.connectionTimeout);
-      
+      final response = await _dio.post(
+        endpoint,
+        data: body,
+      );
       return _handleResponse<T>(response, fromJson);
+    } on DioException catch (e) {
+      return _handleDioError<T>(e);
     } catch (e) {
       return ApiResponse.error(e.toString());
     }
@@ -61,19 +120,17 @@ class ApiService {
 
   Future<ApiResponse<T>> put<T>(
     String endpoint, {
-    Map<String, dynamic>? body,
+    dynamic body,
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-      
-      final response = await http.put(
-        uri,
-        headers: await _headers,
-        body: body != null ? jsonEncode(body) : null,
-      ).timeout(ApiConstants.connectionTimeout);
-      
+      final response = await _dio.put(
+        endpoint,
+        data: body,
+      );
       return _handleResponse<T>(response, fromJson);
+    } on DioException catch (e) {
+      return _handleDioError<T>(e);
     } catch (e) {
       return ApiResponse.error(e.toString());
     }
@@ -84,54 +141,74 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-      
-      final response = await http.delete(uri, headers: await _headers)
-          .timeout(ApiConstants.connectionTimeout);
-      
+      final response = await _dio.delete(endpoint);
       return _handleResponse<T>(response, fromJson);
+    } on DioException catch (e) {
+      return _handleDioError<T>(e);
     } catch (e) {
       return ApiResponse.error(e.toString());
     }
   }
 
   ApiResponse<T> _handleResponse<T>(
-    http.Response response,
+    Response response,
     T Function(dynamic)? fromJson,
   ) {
-    // Handle 401 Unauthorized - clear token
-    if (response.statusCode == 401) {
-      clearToken();
-      return ApiResponse.error('Session expired. Please login again.');
-    }
+    final body = response.data;
     
-    // Handle empty response
-    if (response.body.isEmpty) {
-      return ApiResponse.error('Empty response from server');
-    }
-    
-    final body = jsonDecode(response.body);
-    
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    // Most of our APIs return { "success": true, "data": ..., "message": ... }
+    if (body is Map<String, dynamic>) {
       if (body['success'] == true || body['success'] == null) {
-        // Handle both ApiResponse format and direct data
         final data = body['data'] ?? body;
         if (fromJson != null && data != null) {
-          return ApiResponse.success(fromJson(data), body['message']);
+          try {
+            return ApiResponse.success(fromJson(data), body['message']);
+          } catch (e) {
+            return ApiResponse.error('Data parsing error: $e');
+          }
         }
         return ApiResponse.success(data as T?, body['message']);
       }
+      return ApiResponse.error(body['message'] ?? 'Unknown error');
+    }
+
+    // Direct data response
+    if (fromJson != null && body != null) {
+      try {
+        return ApiResponse.success(fromJson(body));
+      } catch (e) {
+        return ApiResponse.error('Data parsing error: $e');
+      }
     }
     
-    final message = body['message'] ?? 'An error occurred';
-    final errors = body['errors'] != null 
-        ? List<String>.from(body['errors']) 
-        : null;
-    
+    return ApiResponse.success(body as T?);
+  }
+
+  ApiResponse<T> _handleDioError<T>(DioException e) {
+    String message = 'An unexpected error occurred';
+    List<String>? errors;
+
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      message = 'Connection timed out. Please check your internet.';
+    } else if (e.type == DioExceptionType.connectionError) {
+      message = 'No internet connection.';
+    } else if (e.response != null) {
+      final body = e.response!.data;
+      if (body is Map<String, dynamic>) {
+        message = body['message'] ?? 'Server error: ${e.response!.statusCode}';
+        if (body['errors'] != null) {
+          errors = List<String>.from(body['errors']);
+        }
+      } else {
+        message = 'Server error: ${e.response!.statusCode}';
+      }
+    }
+
     return ApiResponse.error(message, errors);
   }
 
-  // Token management
+  // Token management helper for legacy services if still needed
   Future<void> saveToken(String token) async {
     await _storage.write(key: StorageKeys.accessToken, value: token);
   }
@@ -141,7 +218,7 @@ class ApiService {
   }
 
   Future<bool> hasToken() async {
-    final token = await _token;
+    final token = await _storage.read(key: StorageKeys.accessToken);
     return token != null && token.isNotEmpty;
   }
 }

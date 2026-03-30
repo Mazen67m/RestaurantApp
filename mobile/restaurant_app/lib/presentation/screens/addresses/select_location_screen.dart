@@ -251,22 +251,13 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         color: Colors.grey[200],
         child: Stack(
           children: [
-            // Grid pattern to simulate map
-            GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 10,
+            // Map placeholder image
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/map_placeholder.png',
+                fit: BoxFit.cover,
+                opacity: const AlwaysStoppedAnimation(0.6),
               ),
-              itemBuilder: (context, index) {
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey[300]!,
-                      width: 0.5,
-                    ),
-                  ),
-                );
-              },
             ),
             // Center crosshair
             Center(

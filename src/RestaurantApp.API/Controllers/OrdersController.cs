@@ -7,6 +7,9 @@ using RestaurantApp.Domain.Enums;
 
 namespace RestaurantApp.API.Controllers;
 
+/// <summary>
+/// Controller for managing customer orders and history
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -23,6 +26,11 @@ public class OrdersController : ControllerBase
         _authService = authService;
     }
 
+    /// <summary>
+    /// Creates a new order for the current user
+    /// </summary>
+    /// <param name="dto">Order details including items and delivery info</param>
+    /// <returns>The created order ID and summary</returns>
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
     {
@@ -35,6 +43,11 @@ public class OrdersController : ControllerBase
         return CreatedAtAction(nameof(GetOrder), new { id = result.Data!.OrderId }, result);
     }
 
+    /// <summary>
+    /// Retrieves a paged list of orders for the current user
+    /// </summary>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Items per page (default: 10)</param>
     [HttpGet]
     public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
@@ -43,6 +56,10 @@ public class OrdersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Gets detailed information for a specific order
+    /// </summary>
+    /// <param name="id">The order ID</param>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOrder(int id)
     {
@@ -62,6 +79,10 @@ public class OrdersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Tracks the status history of an order
+    /// </summary>
+    /// <param name="id">The order ID</param>
     [HttpGet("{id}/track")]
     public async Task<IActionResult> TrackOrder(int id)
     {
@@ -74,6 +95,11 @@ public class OrdersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Cancels a pending order
+    /// </summary>
+    /// <param name="id">The order ID</param>
+    /// <param name="request">The cancellation reason</param>
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderRequest request)
     {

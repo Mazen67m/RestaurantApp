@@ -67,37 +67,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       cartProvider.setCustomerNotes(_notesController.text);
       
       final orderData = cartProvider.toOrderJson();
-      debugPrint('📦 Order Data: ${jsonEncode(orderData)}');
       
       final apiService = ApiService();
       final response = await apiService.post<Map<String, dynamic>>(
         ApiConstants.orders,
         body: orderData,
         fromJson: (data) {
-          debugPrint('📥 Raw API Response: $data');
-          debugPrint('📥 Response Type: ${data.runtimeType}');
-          
           // Handle different response structures
           if (data is Map<String, dynamic>) {
             // Check if data is nested under 'data' key
             if (data.containsKey('data')) {
               final nestedData = data['data'];
               if (nestedData is Map<String, dynamic>) {
-                debugPrint('📦 Using nested data');
                 return nestedData;
               }
             }
-            debugPrint('📦 Using direct data');
             return data;
           }
-          
-          debugPrint('⚠️ Unexpected response type, returning empty map');
           return <String, dynamic>{};
         },
       );
-
-      debugPrint('✅ Response Success: ${response.success}');
-      debugPrint('✅ Response Data: ${response.data}');
 
       if (response.success && response.data != null) {
         final responseData = response.data!;
@@ -118,10 +107,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ? orderIdValue 
             : int.tryParse(orderIdValue.toString()) ?? 0;
         
-        debugPrint('🎉 Order Created Successfully!');
-        debugPrint('🎉 Order Number: $orderNumber');
-        debugPrint('🎉 Order ID: $orderId');
-        
         cartProvider.clearCart();
         
         if (mounted) {
@@ -136,12 +121,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       } else {
         final errorMsg = response.message ?? 'Failed to place order';
-        debugPrint('❌ Order Failed: $errorMsg');
         setState(() => _error = errorMsg);
       }
-    } catch (e, stackTrace) {
-      debugPrint('💥 Order Placement Exception: $e');
-      debugPrint('💥 Stack Trace: $stackTrace');
+    } catch (e, _) {
       setState(() => _error = 'Failed to place order: ${e.toString()}');
     }
 

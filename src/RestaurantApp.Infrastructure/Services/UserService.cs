@@ -88,13 +88,18 @@ public class UserService : IUserService
             })
             .ToDictionaryAsync(x => x.UserId);
 
-        // Batch load user roles (still requires individual queries but cached by UserManager)
-        var userRolesDict = new Dictionary<int, string>();
-        foreach (var user in users)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            userRolesDict[user.Id] = roles.FirstOrDefault() ?? "Customer";
-        }
+        // Batch load user roles (fixes N+1 query problem)
+        var userRoles = await _context.UserRoles
+            .Where(ur => allUserIds.Contains(ur.UserId))
+            .Join(_context.Roles, 
+                ur => ur.RoleId, 
+                r => r.Id, 
+                (ur, r) => new { ur.UserId, r.Name })
+            .ToListAsync();
+
+        var userRolesDict = userRoles
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.First()?.Name ?? "Customer");
 
         // Map to DTOs using pre-loaded data
         var userDtos = users.Select(user =>

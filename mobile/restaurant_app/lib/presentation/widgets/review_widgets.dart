@@ -104,7 +104,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
         _reviews = reviews;
       });
     } catch (e) {
-      print('Error loading reviews: $e');
+      // Error is silent as it's a UI widget
     } finally {
       setState(() => _isLoading = false);
     }

@@ -98,14 +98,10 @@ class _CustomBottomNavState extends State<CustomBottomNav>
     return Container(
       height: AppDimensions.bottomNavHeight,
       decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowMedium,
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        color: AppColors.background,
+        border: const Border(
+          top: BorderSide(color: AppColors.border, width: 0.5),
+        ),
       ),
       child: SafeArea(
         child: Row(
@@ -117,68 +113,66 @@ class _CustomBottomNavState extends State<CustomBottomNav>
             return Expanded(
               child: InkWell(
                 onTap: () => widget.onTap(index),
-                child: ScaleTransition(
-                  scale: _animations[index],
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Icon(
-                            isActive ? item.activeIcon : item.icon,
-                            color: isActive
-                                ? AppColors.primaryOrange
-                                : AppColors.textSecondary,
-                            size: AppDimensions.iconMd,
-                          ),
-                          // Badge for Orders tab
-                          if (index == 2 &&
-                              widget.cartItemCount != null &&
-                              widget.cartItemCount! > 0)
-                            Positioned(
-                              right: -8,
-                              top: -4,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accentRed,
-                                  shape: BoxShape.circle,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          isActive ? item.activeIcon : item.icon,
+                          color: isActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          size: 24,
+                        ),
+                        // Badge for Orders tab
+                        if (index == 2 &&
+                            widget.cartItemCount != null &&
+                            widget.cartItemCount! > 0)
+                          Positioned(
+                            right: -8,
+                            top: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                widget.cartItemCount! > 9
+                                    ? '9+'
+                                    : widget.cartItemCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                child: Text(
-                                  widget.cartItemCount! > 9
-                                      ? '9+'
-                                      : widget.cartItemCount.toString(),
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppColors.textWhite,
-                                    fontSize: 9,
-                                    fontWeight: AppTypography.fontBold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                        ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.label,
+                      style: TextStyle(
+                        color: isActive
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: isActive
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: AppTypography.caption.copyWith(
-                          color: isActive
-                              ? AppColors.primaryOrange
-                              : AppColors.textSecondary,
-                          fontWeight: isActive
-                              ? AppTypography.fontSemiBold
-                              : AppTypography.fontRegular,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             );

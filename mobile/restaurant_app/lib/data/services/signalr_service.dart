@@ -152,15 +152,12 @@ class OrderSignalRService {
         _connectionId = data['connectionId'];
         _updateState(SignalRConnectionState.connected);
         _startPolling();
-        debugPrint('SignalR connected with ID: $_connectionId');
         return true;
       } else {
-        debugPrint('SignalR negotiate failed: ${response.statusCode}');
         _updateState(SignalRConnectionState.disconnected);
         return false;
       }
     } catch (e) {
-      debugPrint('SignalR connection error: $e');
       _updateState(SignalRConnectionState.disconnected);
       return false;
     }
@@ -171,7 +168,6 @@ class OrderSignalRService {
     _stopPolling();
     _connectionId = null;
     _updateState(SignalRConnectionState.disconnected);
-    debugPrint('SignalR disconnected');
   }
 
   /// Join order group to receive updates for a specific order
@@ -197,7 +193,6 @@ class OrderSignalRService {
   /// Invoke a hub method
   Future<void> _invokeHubMethod(String method, List<String> args) async {
     if (_connectionId == null) {
-      debugPrint('Cannot invoke $method: not connected');
       return;
     }
 
@@ -222,9 +217,7 @@ class OrderSignalRService {
         headers: headers,
         body: body,
       );
-    } catch (e) {
-      debugPrint('Error invoking $method: $e');
-    }
+    } catch (e) {}
   }
 
   void _startPolling() {
@@ -261,7 +254,6 @@ class OrderSignalRService {
         _handleMessages(response.body);
       }
     } catch (e) {
-      debugPrint('Polling error: $e');
       if (_connectionState == SignalRConnectionState.connected) {
         _updateState(SignalRConnectionState.reconnecting);
         // Try to reconnect
@@ -287,9 +279,7 @@ class OrderSignalRService {
           _handleHubMessage(target, arguments[0]);
         }
       }
-    } catch (e) {
-      debugPrint('Error handling messages: $e');
-    }
+    } catch (e) {}
   }
 
   void _handleHubMessage(String target, dynamic data) {
@@ -297,23 +287,20 @@ class OrderSignalRService {
       case 'OrderStatusUpdated':
         final update = OrderStatusUpdate.fromJson(data);
         _orderStatusUpdateController.add(update);
-        debugPrint('Order ${update.orderId} status: ${update.statusText}');
         break;
         
       case 'NewOrder':
         final notification = NewOrderNotification.fromJson(data);
         _newOrderController.add(notification);
-        debugPrint('New order: ${notification.orderNumber}');
         break;
         
       case 'OrderReady':
         final notification = OrderReadyNotification.fromJson(data);
         _orderReadyController.add(notification);
-        debugPrint('Order ready: ${notification.message}');
         break;
         
       default:
-        debugPrint('Unknown hub message: $target');
+        break;
     }
   }
 

@@ -19,7 +19,6 @@ class AddressService {
       }
       return [];
     } catch (e) {
-      print('Error fetching addresses: $e');
       return [];
     }
   }
@@ -37,7 +36,6 @@ class AddressService {
       }
       return null;
     } catch (e) {
-      print('Error fetching address: $e');
       return null;
     }
   }
@@ -56,7 +54,6 @@ class AddressService {
       }
       return null;
     } catch (e) {
-      print('Error creating address: $e');
       return null;
     }
   }
@@ -75,7 +72,6 @@ class AddressService {
       }
       return null;
     } catch (e) {
-      print('Error updating address: $e');
       return null;
     }
   }
@@ -88,7 +84,6 @@ class AddressService {
       );
       return response.success;
     } catch (e) {
-      print('Error deleting address: $e');
       return false;
     }
   }
@@ -101,7 +96,6 @@ class AddressService {
       );
       return response.success;
     } catch (e) {
-      print('Error setting default address: $e');
       return false;
     }
   }

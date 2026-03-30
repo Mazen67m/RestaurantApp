@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/locale_provider.dart';
+import '../../../shared/widgets/primary_button.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -64,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? context.tr('error')),
-          backgroundColor: AppTheme.errorColor,
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -73,11 +75,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(context.tr('register')),
+        title: Text(context.tr('register'), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppTheme.textPrimary,
+        foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -98,22 +101,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Create your account to get started',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: AppTheme.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 
                 const SizedBox(height: 32),
                 
                 // Full Name
-                TextFormField(
+                AppTextField(
                   controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: context.tr('full_name'),
-                    prefixIcon: const Icon(Icons.person_outlined),
-                  ),
+                  label: context.tr('full_name'),
+                  hint: 'John Doe',
+                  prefixIcon: Icons.person_outlined,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Name is required';
@@ -128,14 +129,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 
                 // Email
-                TextFormField(
+                AppTextField(
                   controller: _emailController,
+                  label: context.tr('email'),
+                  hint: 'example@email.com',
+                  prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
-                  textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: context.tr('email'),
-                    prefixIcon: const Icon(Icons.email_outlined),
-                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Email is required';
@@ -150,15 +149,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 
                 // Phone
-                TextFormField(
+                AppTextField(
                   controller: _phoneController,
+                  label: context.tr('phone'),
+                  hint: '+971 50 xxx xxxx',
+                  prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
-                  textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: context.tr('phone'),
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    hintText: '+971 50 xxx xxxx',
-                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Phone is required';
@@ -170,24 +166,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 
                 // Password
-                TextFormField(
+                AppTextField(
                   controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: context.tr('password'),
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword 
-                            ? Icons.visibility_outlined 
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
-                      },
-                    ),
-                  ),
+                  label: context.tr('password'),
+                  hint: '••••••••',
+                  prefixIcon: Icons.lock_outlined,
+                  isPassword: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Password is required';
@@ -202,24 +186,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 
                 // Confirm Password
-                TextFormField(
+                AppTextField(
                   controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  textDirection: TextDirection.ltr,
-                  decoration: InputDecoration(
-                    labelText: context.tr('confirm_password'),
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword 
-                            ? Icons.visibility_outlined 
-                            : Icons.visibility_off_outlined,
-                      ),
-                      onPressed: () {
-                        setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                      },
-                    ),
-                  ),
+                  label: context.tr('confirm_password'),
+                  hint: '••••••••',
+                  prefixIcon: Icons.lock_outlined,
+                  isPassword: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Confirm password is required';
@@ -234,27 +206,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 32),
                 
                 // Register button
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            context.tr('sign_up'),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                PrimaryButton(
+                  text: context.tr('sign_up'),
+                  onPressed: _register,
+                  isLoading: _isLoading,
                 ),
                 
                 const SizedBox(height: 24),
@@ -265,13 +220,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       context.tr('already_have_account'),
-                      style: TextStyle(color: AppTheme.textSecondary),
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(
                         context.tr('sign_in'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

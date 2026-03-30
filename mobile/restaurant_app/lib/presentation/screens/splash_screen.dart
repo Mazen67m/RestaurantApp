@@ -5,6 +5,12 @@ import '../../data/providers/auth_provider.dart';
 import '../../data/providers/restaurant_provider.dart';
 import 'auth/login_screen.dart';
 import 'home/home_screen.dart';
+import 'onboarding/onboarding_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../core/constants/constants.dart';
+import '../../data/services/system_service.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../data/providers/locale_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -44,22 +50,69 @@ class _SplashScreenState extends State<SplashScreen>
     final restaurantProvider = context.read<RestaurantProvider>();
     await restaurantProvider.loadAll();
     
+    // Version check (Simulated since package_info_plus isn't installed)
+    const currentVersion = '1.0.0';
+    final systemService = SystemService();
+    final updateInfo = await systemService.checkUpdate(currentVersion, 'windows');
+    
+    if (updateInfo != null && updateInfo.forceUpdate && mounted) {
+      _showUpdateDialog(updateInfo);
+      return;
+    }
+
     // Wait for animation
     await Future.delayed(const Duration(seconds: 2));
     
     if (!mounted) return;
     
-    // Check auth status
+    // Check onboarding and auth status
     final authProvider = context.read<AuthProvider>();
+    const storage = FlutterSecureStorage();
+    final hasSeenOnboarding = await storage.read(key: StorageKeys.hasSeenOnboarding) == 'true';
     
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => authProvider.isAuthenticated 
-            ? const HomeScreen() 
-            : const LoginScreen(),
+    if (!mounted) return;
+
+    if (!hasSeenOnboarding) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => authProvider.isAuthenticated 
+              ? const HomeScreen() 
+              : const LoginScreen(),
+        ),
+      );
+    }
+  }
+
+  void _showUpdateDialog(AppVersionInfo info) {
+    showDialog(
+      context: context,
+      barrierDismissible: !info.forceUpdate,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('update_required')),
+        content: Text(
+          '${context.tr('update_message')}\n\n${info.getReleaseNotes(context.read<LocaleProvider>().isArabic)}',
+        ),
+        actions: [
+          if (!info.forceUpdate)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(context.tr('later')),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              // In real app, launch update URL
+            },
+            child: Text(context.tr('update_now')),
+          ),
+        ],
       ),
     );
   }
+
 
   @override
   void dispose() {

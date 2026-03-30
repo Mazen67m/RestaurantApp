@@ -139,3 +139,14 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+tests/RestaurantApp.UnitTests/obj/project.nuget.cache
+src/RestaurantApp.API/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.AssemblyInfoInputs.cache
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.AssemblyInfoInputs.cache
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.assets.cache
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.csproj.AssemblyReference.cache
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.csproj.CoreCompileInputs.cache
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.dll
+tests/RestaurantApp.UnitTests/obj/Debug/net10.0/RestaurantApp.UnitTests.genruntimeconfig.cache
+architecture_review.md.resolved
+ADMIN_DASHBOARD_ARCHITECTURAL_REVIEW.md
