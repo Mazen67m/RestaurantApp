@@ -437,8 +437,7 @@ public class OrderService : IOrderService
                 .ThenInclude(i => i.OrderItemAddOns)
             .Include(o => o.Branch)
             .Include(o => o.User)
-            .Include(o => o.Delivery)
-            .AsQueryable();
+            .Include(o => o.Delivery)`r`n            .AsSplitQuery() // Performance optimization for complex includes`r`n            .AsQueryable();
 
         if (branchId.HasValue)
             query = query.Where(o => o.BranchId == branchId.Value);

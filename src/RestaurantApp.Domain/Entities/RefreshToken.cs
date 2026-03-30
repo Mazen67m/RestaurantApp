@@ -19,11 +19,6 @@ public class RefreshToken
     public int UserId { get; set; }
     
     /// <summary>
-    /// Navigation property to User
-    /// </summary>
-    public User User { get; set; } = null!;
-    
-    /// <summary>
     /// When this token expires
     /// </summary>
     public DateTime ExpiresAt { get; set; }

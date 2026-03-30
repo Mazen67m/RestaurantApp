@@ -67,6 +67,64 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
                     .HasColumnType("decimal(18,2)");
             }
         }
+        
+        // ========================================
+        // Performance Indexes - Production Readiness
+        // ========================================
+        
+        // Orders table - High-traffic queries
+        builder.Entity<Order>()
+            .HasIndex(o => o.UserId)
+            .HasDatabaseName("IX_Orders_UserId");
+        
+        builder.Entity<Order>()
+            .HasIndex(o => o.BranchId)
+            .HasDatabaseName("IX_Orders_BranchId");
+        
+        builder.Entity<Order>()
+            .HasIndex(o => o.Status)
+            .HasDatabaseName("IX_Orders_Status");
+        
+        builder.Entity<Order>()
+            .HasIndex(o => o.CreatedAt)
+            .HasDatabaseName("IX_Orders_CreatedAt");
+        
+        // Reviews table - Moderation and display queries
+        builder.Entity<Review>()
+            .HasIndex(r => r.MenuItemId)
+            .HasDatabaseName("IX_Reviews_MenuItemId");
+        
+        builder.Entity<Review>()
+            .HasIndex(r => r.IsApproved)
+            .HasDatabaseName("IX_Reviews_IsApproved");
+        
+        // MenuItems table - Catalog queries
+        builder.Entity<MenuItem>()
+            .HasIndex(m => m.CategoryId)
+            .HasDatabaseName("IX_MenuItems_CategoryId");
+        
+        builder.Entity<MenuItem>()
+            .HasIndex(m => m.IsAvailable)
+            .HasDatabaseName("IX_MenuItems_IsAvailable");
+        
+        // LoyaltyTransactions table - User history queries
+        builder.Entity<LoyaltyTransaction>()
+            .HasIndex(lt => lt.UserId)
+            .HasDatabaseName("IX_LoyaltyTransactions_UserId");
+        
+        // OrderStatusHistory table - Order tracking
+        builder.Entity<OrderStatusHistory>()
+            .HasIndex(osh => osh.OrderId)
+            .HasDatabaseName("IX_OrderStatusHistory_OrderId");
+        
+        // RefreshTokens table - Authentication queries
+        builder.Entity<RefreshToken>()
+            .HasIndex(rt => rt.Token)
+            .HasDatabaseName("IX_RefreshTokens_Token");
+        
+        builder.Entity<RefreshToken>()
+            .HasIndex(rt => rt.UserId)
+            .HasDatabaseName("IX_RefreshTokens_UserId");
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
